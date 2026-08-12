@@ -1,0 +1,53 @@
+# Offline eğitim varsayılan hiperparametreleri — TASARIM.md §4, §6, §12.5.
+#
+# ÖNEMLİ: referans makale (docs/references/EBSCO-FullText-07_26_2026.pdf)
+# RL hiperparametrelerinin (öğrenme oranı, batch size, ω1/ω2, r_s/β0/β1/β2,
+# ε-greedy zamanlaması) SAYISAL değerlerini PAYLAŞMIYOR — "critical
+# hyperparameters... are systematically tuned using grid search" diyor ama
+# sonuçları vermiyor (gerçek fabrika verisiyle kalibre edilmiş, ticari
+# gizli). Aşağıdaki TÜM değerler bu yüzden mühendislik tahminine dayalı
+# YER TUTUCU'dur (Faz 1'in constraint_config seed değerleriyle aynı ruhta,
+# bkz. TASARIM.md §12.2.3.1) — TEK somut sayısal referans makaleden gelen
+# ``min_replay_size: 1000``'dir (§3.2).
+
+seed: 7
+episodes: 8000   # Faz C (docs/SONUCLAR.md SS9): 3000'den artırıldı, Faz A'nın gerçek bir öğrenilebilir sinyal olduğunu kanıtlamasının ardından
+
+# Makale §3.1.2/§3.3.1: eğitim + test alt-kümeleri 5 haddeleme kursluk
+# episotlar kullanıyor ("each test subset consists of 5 rolling courses").
+courses_per_episode: 5
+
+# k_max = courses_per_episode(5) × main_groups_per_course.max(2)
+#   (config_synthetic.yaml) — bir epizotun paylaşımlı havuzunda, hiç
+#   tüketim olmadan, AYNI ANDA var olabilecek en fazla ana grup sayısı.
+k_max: 10
+# p_max = courses_per_episode(5) × (decoy_transition_count.max(10) +
+#   soft_transition_limit(3) köprü order'ı) — bir kurs-batch'i başına en
+#   fazla geçiş order'ı sayısının epizot boyunca toplamı; güvenlik payıyla
+#   yuvarlandı (tam hesap 65, buraya 70 yazıldı).
+p_max: 70
+
+# Sonsuz döngü koruması — fiziksel bir kısıt DEĞİLDİR, salt güvenlik ağı.
+max_manager_steps_per_course: 20
+max_worker_steps_per_subtask: 10
+
+gamma: 0.99
+hidden_dim: 256   # Faz C (docs/SONUCLAR.md SS9): 128'den artırıldı, daha zengin bir politika öğrenebilme kapasitesi için
+learning_rate: 0.0005
+batch_size: 64
+target_update_interval: 500
+replay_capacity: 50000
+min_replay_size: 1000   # makale §3.2 — projede tek somut sayısal referans
+
+epsilon_start: 1.0
+epsilon_end: 0.05
+epsilon_decay_steps: 20000
+
+# eş. 34 (manager) + eş. 35 (worker) katsayıları — hepsi YER TUTUCU.
+reward_weights:
+  omega1: 1.0    # cov (kapsama oranı) ağırlığı
+  omega2: 0.2    # cap (kapasite ihlali) ceza ağırlığı
+  r_s: 20.0      # başarı bonusu
+  beta0: 2.0     # başarısızlık cezası
+  beta1: 0.5     # temel uzunluk cezası (G başına)
+  beta2: 1.0     # soft_transition_limit (3) üstü ek ceza katsayısı

@@ -1,0 +1,37 @@
+# Kıtlaştırılmış sentetik veri üretici konfigürasyonu — TASARIM.md §14.1.A
+# ("Faz B — kıtlaştırma testi/eğitimi").
+#
+# `config_synthetic.yaml`'ın BİREBİR kopyası, yalnızca iki alan daraltıldı:
+#   - `group_size`: {30-70} → {15-35} (yarıya)
+#   - `main_groups_per_course`: {1-2} → {2-3} (havuzda daha fazla, daha küçük
+#     ana grup — Manager'ın her adımda "kolay/Worker'sız" bir aday bulma
+#     olasılığını azaltır, bkz. `docs/RAPOR.md` §3 "tavan etkisi" bulgusu)
+#
+# Amaç: modelin gerçek köprüleme (Worker) becerisini daha sık test eden,
+# kasıtlı olarak daha zor bir sentetik dağılım üretmek. Diğer TÜM alanlar
+# `config_synthetic.yaml` ile birebir aynı tutuldu — yalnızca kıtlık
+# değişkeni izole edilsin diye.
+
+main_steel_grades: [Q235B, Q345B, SPHC, SS400, SPCC]
+transition_steel_grades: [TR-C, TR-D]
+
+main_groups_per_course: {min: 2, max: 3}
+group_size: {min: 15, max: 35}
+
+main_width_mm: {min: 900.0, max: 1200.0}
+main_thickness_mm: {min: 1.2, max: 4.0}
+main_hardness: {min: 30.0, max: 50.0}
+main_heating_temp_c: {min: 820.0, max: 900.0}
+
+within_batch_jitter: {hardness: 1.0, heating_temp_c: 3.0}
+
+slab_thickness_mm: {min: 200.0, max: 230.0}
+slab_length_mm: {min: 6000.0, max: 10000.0}
+slab_width_margin_mm: {min: 0.0, max: 40.0}
+
+transition_width_mm: {min: 700.0, max: 1700.0}
+transition_thickness_mm: {min: 1.0, max: 6.5}
+transition_hardness: {min: 25.0, max: 75.0}
+transition_heating_temp_c: {min: 800.0, max: 960.0}
+
+decoy_transition_count: {min: 4, max: 10}

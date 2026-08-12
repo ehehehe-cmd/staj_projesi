@@ -1,0 +1,31 @@
+<mat-sidenav-container class="app-shell">
+  <mat-sidenav mode="side" opened class="app-sidenav">
+    <div class="brand">
+      <img class="brand-logo" src="/brand/erdemir-logo.svg" alt="Erdemir" />
+      <div class="brand-sub">Sıcak Haddeleme HRL<br />Çizelgeleme Sistemi</div>
+    </div>
+
+    <mat-nav-list class="nav-list">
+      @for (link of navLinks; track link.path) {
+        <a mat-list-item [routerLink]="link.path" routerLinkActive="active-link">
+          <mat-icon matListItemIcon>{{ link.icon }}</mat-icon>
+          <span matListItemTitle>{{ link.label }}</span>
+        </a>
+      }
+    </mat-nav-list>
+
+    <div class="sidenav-footer">
+      <span class="conn-dot" [class.conn-on]="connected()"></span>
+      {{ connected() ? 'Sisteme bağlı' : 'Bağlantı yok' }}
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar class="app-toolbar">
+      <span class="toolbar-title">{{ title }}</span>
+    </mat-toolbar>
+    <main class="app-content">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

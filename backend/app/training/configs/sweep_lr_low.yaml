@@ -1,0 +1,29 @@
+# TASARIM.md §14.2 hiperparametre taraması - gecici varyant dosyasi.
+# default.yaml'ın birebir kopyası, yalnızca learning_rate: 0.0005 -> 0.0001.
+seed: 7
+episodes: 8000
+courses_per_episode: 5
+k_max: 10
+p_max: 70
+max_manager_steps_per_course: 20
+max_worker_steps_per_subtask: 10
+
+gamma: 0.99
+hidden_dim: 256
+learning_rate: 0.0001
+batch_size: 64
+target_update_interval: 500
+replay_capacity: 50000
+min_replay_size: 1000
+
+epsilon_start: 1.0
+epsilon_end: 0.05
+epsilon_decay_steps: 20000
+
+reward_weights:
+  omega1: 1.0
+  omega2: 0.2
+  r_s: 20.0
+  beta0: 2.0
+  beta1: 0.5
+  beta2: 1.0

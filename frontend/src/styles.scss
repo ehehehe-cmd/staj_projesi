@@ -1,0 +1,130 @@
+// Global styles. Erdemir kurumsal kimliği: lacivert (#07254f) + çelik-mavisi
+// (#2e3b52) + kurumsal kırmızı (#d30013) — bkz. src/theme/_erdemir-theme.scss.
+@use '@angular/material' as mat;
+@use './theme/erdemir-theme' as theme;
+
+@include mat.core();
+
+html {
+  @include mat.all-component-themes(theme.$light-theme);
+  // M3 temaları varsayılan olarak SADECE primary rengi için CSS üretir --
+  // `color="accent"` / `color="warn"` (Duraklat/Devam Et/Durdur butonları,
+  // status-badge vb.) çalışsın diye eski M2 tarzı renk varyantlarını da
+  // dahil ediyoruz.
+  @include mat.color-variants-backwards-compatibility(theme.$light-theme);
+}
+
+:root {
+  --app-primary: #07254f;
+  --app-primary-dark: #051733;
+  --app-primary-light: #2e3b52;
+  --app-accent: #d30013;
+  --app-accent-dark: #a80010;
+
+  --app-bg: #f2f4f7;
+  --app-surface: #ffffff;
+  --app-surface-alt: #f5f7fa;
+  --app-border: #e1e5eb;
+
+  --app-text: #101826;
+  --app-text-secondary: #48566b;
+  --app-text-muted: #8592a3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-family: Inter, Roboto, 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: inherit;
+  color: var(--app-text);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+h1 {
+  font-size: 21px;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 3px solid var(--app-accent);
+  display: inline-block;
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+// Kart görünümü: default Material outlined kartlar yerine hafif gölge +
+// yumuşak köşe -- daha "kurumsal panel" hissi.
+.mat-mdc-card.mat-mdc-card-outlined {
+  border-radius: 10px;
+  border-color: var(--app-border);
+  box-shadow: 0 1px 2px rgba(7, 37, 79, 0.06);
+  background: var(--app-surface);
+}
+
+// Tablo başlıkları: koyu lacivert üstü ince, büyük harf etiket -- rapor/panel
+// tablolarında yaygın kurumsal desen.
+.mat-mdc-table {
+  background: transparent;
+}
+
+.mat-mdc-header-row {
+  background: var(--app-surface-alt);
+}
+
+.mat-mdc-header-cell {
+  color: var(--app-text-secondary) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom-color: var(--app-border) !important;
+}
+
+.mat-mdc-cell {
+  color: var(--app-text);
+  border-bottom-color: var(--app-border) !important;
+}
+
+.mat-mdc-row:hover .mat-mdc-cell {
+  background: var(--app-surface-alt);
+}
+
+// İnce, kurumsal görünümlü scrollbar (webkit).
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c7cedb;
+  border-radius: 6px;
+  border: 2px solid var(--app-bg);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aab4c6;
+}

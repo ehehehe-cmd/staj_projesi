@@ -1,0 +1,34 @@
+# --- Secrets / environment ---
+.env
+infra/.env
+backend/.env
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+backend/.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Model artifacts / training outputs ---
+backend/model_registry/*.pt
+backend/runs/
+**/tensorboard_logs/
+
+# --- Node / Angular ---
+node_modules/
+frontend/.angular/
+frontend/dist/
+
+# --- Postgres data volume (bind-mount fallback, normally a named docker volume) ---
+infra/pgdata/
+
+# --- Editor / OS ---
+.DS_Store
+*.swp
+
+
+docs
