@@ -33,7 +33,7 @@ def list_orders(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[SlabOrder]:
-    stmt = select(SlabOrder).order_by(SlabOrder.id)
+    stmt = select(SlabOrder).order_by(SlabOrder.id.desc())
     if status is not None:
         stmt = stmt.where(SlabOrder.status == status)
     if order_class is not None:
@@ -51,7 +51,7 @@ def list_main_groups(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ) -> list[MainProductGroup]:
-    stmt = select(MainProductGroup).order_by(MainProductGroup.id)
+    stmt = select(MainProductGroup).order_by(MainProductGroup.id.desc())
     if status is not None:
         stmt = stmt.where(MainProductGroup.status == status)
     stmt = stmt.offset(offset).limit(limit)

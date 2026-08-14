@@ -26,11 +26,23 @@ import { WidthProfileChartComponent } from '../../shared/components/width-profil
           <span class="meta">{{ course.order_count }} order · {{ course.reverse_width_events_count }} ters-genişlik olayı</span>
         </div>
       </mat-card>
-
-      <mat-card class="chart-card" appearance="outlined">
-        <app-width-profile-chart [slots]="course.slots" />
+    } @else if (timelineSlots().length > 0) {
+      <mat-card class="header-card" appearance="outlined">
+        <span class="meta">Şu anda aktif bir kurs yok — geçmiş kurslar aşağıda kesintisiz olarak görüntüleniyor.</span>
       </mat-card>
+    }
 
+    @if (timelineSlots().length > 0) {
+      <mat-card class="chart-card" appearance="outlined">
+        <app-width-profile-chart [slots]="timelineSlots()" />
+      </mat-card>
+    } @else {
+      <mat-card appearance="outlined" class="empty-card">
+        <p>Şu anda aktif bir kurs yok.</p>
+      </mat-card>
+    }
+
+    @if (activeCourse(); as course) {
       <mat-card class="table-card" appearance="outlined">
         <table mat-table [dataSource]="course.slots" class="slot-table">
           <ng-container matColumnDef="position_index">
@@ -66,10 +78,6 @@ import { WidthProfileChartComponent } from '../../shared/components/width-profil
           <tr mat-row *matRowDef="let row; columns: columns"></tr>
         </table>
       </mat-card>
-    } @else {
-      <mat-card appearance="outlined" class="empty-card">
-        <p>Şu anda aktif bir kurs yok.</p>
-      </mat-card>
     }
   `,
   styles: `
@@ -102,6 +110,7 @@ export class LiveCourseComponent {
   private readonly state = inject(SimulationStateService);
 
   readonly activeCourse = this.state.activeCourse;
+  readonly timelineSlots = this.state.timelineSlots;
   readonly columns = [
     'position_index',
     'role',
