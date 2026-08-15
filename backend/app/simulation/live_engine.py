@@ -258,7 +258,11 @@ class LiveEngine:
         )
 
         transition_needed = progress.last_attributes is not None and transition_rules.is_transition_required(
-            progress.last_attributes, selected.first, self._constraints
+            progress.last_attributes,
+            selected.first,
+            self._constraints,
+            cumulative_length_mm=progress.cumulative_length_mm,
+            reverse_events_in_zone=progress.reverse_width_events_count,
         )
         if not transition_needed:
             placed = self._place_group(session, course, group_id=selected.id)
@@ -318,7 +322,11 @@ class LiveEngine:
         w = self._models.reward_weights
 
         reached = not transition_rules.is_transition_required(
-            new_progress.last_attributes, pending.target_first, self._constraints
+            new_progress.last_attributes,
+            pending.target_first,
+            self._constraints,
+            cumulative_length_mm=new_progress.cumulative_length_mm,
+            reverse_events_in_zone=new_progress.reverse_width_events_count,
         )
         if reached:
             worker_reward = rewards.worker_subtask_reward(
@@ -471,6 +479,12 @@ class LiveEngine:
         remaining_pool = crud.sum_available_group_sizes(session)
         orders_total = self._course_main_orders_used + remaining_pool
         w = self._models.reward_weights
+        # m_target/omega3 (TASARIM.md §14.3.J) bu değişiklikten ÖNCE eğitilmiş
+        # checkpoint'lerin model_versions.hyperparams'ında YOK — omega3=0.0
+        # varsayılanı "over" terimini etkisizleştirir (m_target'ın değeri o
+        # zaman önemsizleşir), yani eski modeller eskisi gibi davranmaya devam
+        # eder; yalnızca m_target/omega3 İÇEREN (yeni eğitilmiş) checkpoint'ler
+        # yumuşak kapasite cezasını fiilen uygular.
         reward = rewards.manager_course_partial_reward(
             course_main_orders=self._course_main_orders_used,
             course_total_orders=course.order_count,
@@ -478,6 +492,8 @@ class LiveEngine:
             m_min=course.min_orders,
             omega1=w["omega1"],
             omega2=w["omega2"],
+            m_target=w.get("m_target", 0.0),
+            omega3=w.get("omega3", 0.0),
         )
         status = crud.complete_course(session, course, m_min=course.min_orders)
         crud.emit_event(

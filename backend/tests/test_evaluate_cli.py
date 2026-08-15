@@ -36,7 +36,9 @@ def _tiny_cfg() -> TrainingConfig:
         seed=1, episodes=3, courses_per_episode=COURSES_PER_EPISODE, k_max=K_MAX, p_max=P_MAX,
         max_manager_steps_per_course=20, max_worker_steps_per_subtask=10,
         hyperparams=_tiny_hyperparams(),
-        reward_weights=RewardWeights(omega1=1.0, omega2=1.0, r_s=10.0, beta0=5.0, beta1=1.0, beta2=2.0),
+        reward_weights=RewardWeights(
+            omega1=1.0, omega2=1.0, r_s=10.0, beta0=5.0, beta1=1.0, beta2=2.0, m_target=100.0, omega3=0.1
+        ),
     )
 
 

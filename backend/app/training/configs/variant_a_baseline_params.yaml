@@ -41,3 +41,5 @@ reward_weights:
   beta0: 2.0
   beta1: 0.5
   beta2: 1.0
+  m_target: 100.0
+  omega3: 0.1

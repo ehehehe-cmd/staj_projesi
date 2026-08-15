@@ -79,6 +79,8 @@ class TrainingConfig:
                 beta0=float(rw["beta0"]),
                 beta1=float(rw["beta1"]),
                 beta2=float(rw["beta2"]),
+                m_target=float(rw["m_target"]),
+                omega3=float(rw["omega3"]),
             ),
         )
 
@@ -323,6 +325,8 @@ def main() -> None:
             "beta0": cfg.reward_weights.beta0,
             "beta1": cfg.reward_weights.beta1,
             "beta2": cfg.reward_weights.beta2,
+            "m_target": cfg.reward_weights.m_target,
+            "omega3": cfg.reward_weights.omega3,
         },
     }
 

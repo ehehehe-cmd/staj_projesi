@@ -32,7 +32,9 @@ def constraints():
 
 @pytest.fixture()
 def reward_weights():
-    return RewardWeights(omega1=1.0, omega2=1.0, r_s=10.0, beta0=5.0, beta1=1.0, beta2=2.0)
+    return RewardWeights(
+        omega1=1.0, omega2=1.0, r_s=10.0, beta0=5.0, beta1=1.0, beta2=2.0, m_target=100.0, omega3=0.1
+    )
 
 
 def _make_env(synthetic_config, constraints, reward_weights, **overrides) -> HotRollingEnv:

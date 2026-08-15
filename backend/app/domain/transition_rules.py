@@ -39,11 +39,37 @@ def within_dimensional_tolerance(
     )
 
 
-def is_transition_required(prev: OrderAttributes, target: OrderAttributes, constraints: RollingConstraints) -> bool:
-    """Figure 5 "Transition required?" kararı: hedef zaten tolerans
-    içindeyse worker'a hiç gerek yoktur.
+def is_transition_required(
+    prev: OrderAttributes,
+    target: OrderAttributes,
+    constraints: RollingConstraints,
+    *,
+    cumulative_length_mm: float,
+    reverse_events_in_zone: int,
+) -> bool:
+    """Figure 5 "Transition required?" kararı: hedef hem boyutsal tolerans
+    içinde (eş. 17-20) HEM DE genişlik-yön kuralına uygunsa (eş. 21-25)
+    worker'a hiç gerek yoktur.
+
+    İkinci koşul (``width_step_is_feasible``) BİLEREK eklendi: yalnızca
+    ``within_dimensional_tolerance`` yeterli sayılırsa, Δw toleransı
+    içindeki (örn. 50mm) küçük bir sıçrama — kendisi Kz sonrası "genişlik
+    artamaz" kuralını (eş. 25) ihlal etse bile — worker'a hiç uğramadan
+    doğrudan yerleştirilebiliyordu (bu fonksiyonun tek çağıranı olan
+    ``_manager_step``'in "doğrudan mı yerleştireyim" kararı). Canlı DB
+    verisiyle doğrulandı: bu boşluk, birden fazla genişlik seviyesi içeren
+    kursların ~%45'inin net yönünün (ilk slot→son slot) makalenin
+    öngördüğü azalan yerine ARTAN çıkmasına yol açıyordu.
     """
-    return not within_dimensional_tolerance(prev, target, constraints)
+    if not within_dimensional_tolerance(prev, target, constraints):
+        return True
+    return not width_step_is_feasible(
+        prev_width_mm=prev.width_mm,
+        next_width_mm=target.width_mm,
+        cumulative_length_mm=cumulative_length_mm,
+        reverse_events_in_zone=reverse_events_in_zone,
+        constraints=constraints,
+    )
 
 
 def is_reverse_width_step(prev_width_mm: float, next_width_mm: float) -> bool:

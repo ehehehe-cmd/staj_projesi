@@ -43,7 +43,9 @@ def _build_env() -> HotRollingEnv:
         delta_w=50.0, delta_t=0.5, delta_h=5.0, delta_theta=30.0,
         kz=3_000_000.0, lr=3, m_min=60, m_max=100, soft_transition_limit=3,
     )
-    weights = RewardWeights(omega1=1.0, omega2=1.0, r_s=10.0, beta0=5.0, beta1=1.0, beta2=2.0)
+    weights = RewardWeights(
+        omega1=1.0, omega2=1.0, r_s=10.0, beta0=5.0, beta1=1.0, beta2=2.0, m_target=100.0, omega3=0.1
+    )
     return HotRollingEnv(
         synthetic_config=config, constraints=constraints, reward_weights=weights,
         courses_per_episode=COURSES_PER_EPISODE, k_max=K_MAX, p_max=P_MAX,

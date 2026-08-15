@@ -51,3 +51,8 @@ reward_weights:
   beta0: 2.0     # başarısızlık cezası
   beta1: 0.5     # temel uzunluk cezası (G başına)
   beta2: 1.0     # soft_transition_limit (3) üstü ek ceza katsayısı
+  # TASARIM.md §14.3.J (2026-08-15): yumuşak kurs-kapasitesi hedefi — eş. 34'ün
+  # bilinçli uzantısı, makalede yok. m_target, action_mask'in kullandığı SERT
+  # m_max'tan (constraint_config, 120) ayrı/küçük bir "buraya kadar ucuz" hedefi.
+  m_target: 100.0  # kurs bu order sayısının üzerine çıkarsa omega3 devreye girer
+  omega3: 0.1      # over cezası ağırlığı (omega2'nin yarısı — "birazcık" düşsün)

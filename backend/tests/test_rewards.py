@@ -6,9 +6,14 @@ from app.domain.rewards import (
     manager_capacity_violation_penalty,
     manager_course_partial_reward,
     manager_coverage_ratio,
+    manager_overcapacity_penalty,
     manager_terminal_reward,
     worker_subtask_reward,
 )
+
+# Mevcut (over-öncesi) testlerde over terimini etkisizleştirmek için: omega3=0.0
+# iken m_target'ın değeri sonucu etkilemez (0 * her şey = 0).
+_NO_OVER = dict(m_target=1_000_000.0, omega3=0.0)
 
 
 class TestManagerCoverageRatio:
@@ -38,6 +43,25 @@ class TestManagerCapacityViolationPenalty:
         assert manager_capacity_violation_penalty(counts, m_min=60) == pytest.approx(1.5)
 
 
+class TestManagerOvercapacityPenalty:
+    """TASARIM.md §14.3.J — cap'in (eş. 33) ayna-simetriği: m_target ÜSTÜNE
+    çıkan her kurs için orantılı bir ceza, m_min ALTINA düşen için değil."""
+
+    def test_no_penalty_when_all_courses_at_or_under_target(self):
+        counts = {1: 100, 2: 60}
+        assert manager_overcapacity_penalty(counts, m_target=100) == 0.0
+
+    def test_penalty_accumulates_for_oversized_courses(self):
+        counts = {1: 103, 2: 100}
+        # course 1: max(0, (103-100)/100) = 0.03 ; course 2: 0
+        assert manager_overcapacity_penalty(counts, m_target=100) == pytest.approx(0.03)
+
+    def test_multiple_oversized_courses_sum(self):
+        counts = {1: 110, 2: 120}
+        # 0.10 + 0.20
+        assert manager_overcapacity_penalty(counts, m_target=100) == pytest.approx(0.30)
+
+
 class TestManagerTerminalReward:
     def test_perfect_coverage_no_violation(self):
         reward = manager_terminal_reward(
@@ -47,6 +71,7 @@ class TestManagerTerminalReward:
             m_min=60,
             omega1=1.0,
             omega2=1.0,
+            **_NO_OVER,
         )
         assert reward == pytest.approx(1.0)
 
@@ -58,6 +83,7 @@ class TestManagerTerminalReward:
             m_min=60,
             omega1=1.0,
             omega2=2.0,
+            **_NO_OVER,
         )
         # cov=1.0, cap=0.5 -> 1.0*1.0 - 2.0*0.5 = 0.0
         assert reward == pytest.approx(0.0)
@@ -70,8 +96,23 @@ class TestManagerTerminalReward:
             m_min=60,
             omega1=3.0,
             omega2=5.0,
+            **_NO_OVER,
         )
         assert reward == pytest.approx(3.0 * 0.5)
+
+    def test_overcapacity_penalty_is_applied(self):
+        reward = manager_terminal_reward(
+            orders_used=100,
+            orders_total=100,
+            course_order_counts={1: 110},
+            m_min=60,
+            omega1=1.0,
+            omega2=1.0,
+            m_target=100.0,
+            omega3=2.0,
+        )
+        # cov=1.0, cap=0 (110>=60), over=(110-100)/100=0.1 -> 1.0 - 0 - 2.0*0.1
+        assert reward == pytest.approx(0.8)
 
 
 class TestManagerCoursePartialReward:
@@ -85,10 +126,12 @@ class TestManagerCoursePartialReward:
     def test_matches_terminal_reward_for_single_course_no_transitions(self):
         # geçiş order'ı yok -> ana ve toplam sayaç aynı
         partial = manager_course_partial_reward(
-            course_main_orders=80, course_total_orders=80, orders_total=100, m_min=60, omega1=1.0, omega2=1.0
+            course_main_orders=80, course_total_orders=80, orders_total=100,
+            m_min=60, omega1=1.0, omega2=1.0, **_NO_OVER,
         )
         terminal = manager_terminal_reward(
-            orders_used=80, orders_total=100, course_order_counts={1: 80}, m_min=60, omega1=1.0, omega2=1.0
+            orders_used=80, orders_total=100, course_order_counts={1: 80},
+            m_min=60, omega1=1.0, omega2=1.0, **_NO_OVER,
         )
         assert partial == pytest.approx(terminal)
 
@@ -100,7 +143,7 @@ class TestManagerCoursePartialReward:
         total_partial = sum(
             manager_course_partial_reward(
                 course_main_orders=q, course_total_orders=q,
-                orders_total=orders_total, m_min=m_min, omega1=omega1, omega2=omega2,
+                orders_total=orders_total, m_min=m_min, omega1=omega1, omega2=omega2, **_NO_OVER,
             )
             for q in course_orders.values()
         )
@@ -111,6 +154,7 @@ class TestManagerCoursePartialReward:
             m_min=m_min,
             omega1=omega1,
             omega2=omega2,
+            **_NO_OVER,
         )
         assert total_partial == pytest.approx(terminal)
 
@@ -126,7 +170,7 @@ class TestManagerCoursePartialReward:
         total_partial = sum(
             manager_course_partial_reward(
                 course_main_orders=m, course_total_orders=t,
-                orders_total=main_orders_total, m_min=m_min, omega1=omega1, omega2=omega2,
+                orders_total=main_orders_total, m_min=m_min, omega1=omega1, omega2=omega2, **_NO_OVER,
             )
             for m, t in courses.values()
         )
@@ -137,21 +181,60 @@ class TestManagerCoursePartialReward:
             m_min=m_min,
             omega1=omega1,
             omega2=omega2,
+            **_NO_OVER,
+        )
+        assert total_partial == pytest.approx(terminal)
+
+    def test_sum_over_courses_equals_terminal_reward_with_overcapacity(self):
+        # AYNI eşitlik (Σ partial ≡ terminal) artik over terimi de AKTIFKEN
+        # (omega3>0) korunuyor mu -- eş.34'ün üç-terimli hâlinin de toplamsal
+        # kaldığının regresyon testi (bazı kurslar m_target'ı asıyor).
+        courses = {1: (110, 110), 2: (30, 30), 3: (100, 100), 4: (0, 0), 5: (95, 105)}
+        main_orders_total = sum(m for m, _ in courses.values())
+        omega1, omega2, omega3, m_min, m_target = 1.0, 0.2, 0.1, 60, 100.0
+
+        total_partial = sum(
+            manager_course_partial_reward(
+                course_main_orders=m, course_total_orders=t,
+                orders_total=main_orders_total, m_min=m_min, omega1=omega1, omega2=omega2,
+                m_target=m_target, omega3=omega3,
+            )
+            for m, t in courses.values()
+        )
+        terminal = manager_terminal_reward(
+            orders_used=sum(m for m, _ in courses.values()),
+            orders_total=main_orders_total,
+            course_order_counts={k: t for k, (_, t) in courses.items()},
+            m_min=m_min,
+            omega1=omega1,
+            omega2=omega2,
+            m_target=m_target,
+            omega3=omega3,
         )
         assert total_partial == pytest.approx(terminal)
 
     def test_undersized_course_is_penalized(self):
         partial = manager_course_partial_reward(
-            course_main_orders=0, course_total_orders=0, orders_total=100, m_min=60, omega1=1.0, omega2=1.0
+            course_main_orders=0, course_total_orders=0, orders_total=100,
+            m_min=60, omega1=1.0, omega2=1.0, **_NO_OVER,
         )
         # cov_contribution=0, cap_contribution=1.0 -> 0 - 1.0
         assert partial == pytest.approx(-1.0)
 
     def test_zero_orders_total_is_zero_cov_not_division_error(self):
         partial = manager_course_partial_reward(
-            course_main_orders=0, course_total_orders=0, orders_total=0, m_min=60, omega1=1.0, omega2=1.0
+            course_main_orders=0, course_total_orders=0, orders_total=0,
+            m_min=60, omega1=1.0, omega2=1.0, **_NO_OVER,
         )
         assert partial == pytest.approx(-1.0)  # cov=0 (guard), cap=1.0
+
+    def test_oversized_course_incurs_over_penalty(self):
+        partial = manager_course_partial_reward(
+            course_main_orders=103, course_total_orders=103, orders_total=103,
+            m_min=60, omega1=1.0, omega2=1.0, m_target=100.0, omega3=0.5,
+        )
+        # cov=1.0, cap=0 (103>=60), over=(103-100)/100=0.03 -> 1.0 - 0 - 0.5*0.03
+        assert partial == pytest.approx(1.0 - 0.5 * 0.03)
 
 
 class TestWorkerSubtaskReward:

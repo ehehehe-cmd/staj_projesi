@@ -1,0 +1,32 @@
+# config_synthetic.yaml'ın 2026-08-15 GENİŞLETMESİNDEN ÖNCEKİ (main_width_mm
+# 900-1200) birebir kopyası — TASARIM.md §14.3.K'daki "cap-only-v2" izole
+# eğitim turu için saklanıyor (bkz. §14.3.J: main_width_mm ve m_max iki AYRI
+# değişken, cap-only'yi genişlik sabit tutarak izole test etmek gerekiyor).
+# scripts/train_with_constraint_override.py --synthetic-config ile kullanılır.
+#
+# Diğer TÜM alanlar config_synthetic.yaml (güncel, 800-1500) ile AYNI —
+# yalnızca main_width_mm farklı, izole değişken bu.
+
+main_steel_grades: [Q235B, Q345B, SPHC, SS400, SPCC]
+transition_steel_grades: [TR-C, TR-D]
+
+main_groups_per_course: {min: 1, max: 2}
+group_size: {min: 30, max: 70}
+
+main_width_mm: {min: 900.0, max: 1200.0}
+main_thickness_mm: {min: 1.2, max: 4.0}
+main_hardness: {min: 30.0, max: 50.0}
+main_heating_temp_c: {min: 820.0, max: 900.0}
+
+within_batch_jitter: {hardness: 1.0, heating_temp_c: 3.0}
+
+slab_thickness_mm: {min: 200.0, max: 230.0}
+slab_length_mm: {min: 6000.0, max: 10000.0}
+slab_width_margin_mm: {min: 0.0, max: 40.0}
+
+transition_width_mm: {min: 700.0, max: 1700.0}
+transition_thickness_mm: {min: 1.0, max: 6.5}
+transition_hardness: {min: 25.0, max: 75.0}
+transition_heating_temp_c: {min: 800.0, max: 960.0}
+
+decoy_transition_count: {min: 4, max: 10}

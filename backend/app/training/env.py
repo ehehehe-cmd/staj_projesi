@@ -51,12 +51,21 @@ Faz 4 tasarım kararları (ayrıntılı gerekçeler için bkz. TASARIM.md §12.5
 
 6. **Genişlik-ters-yön (eş. 21-25) muhasebesi HER yerleştirilen order için
    güncellenir** (ana VEYA geçiş — eş. 22'nin C_j,k toplamı tüm i,l
-   üzerinden), ANCAK ``width_step_is_feasible`` FEZİBİLİTE KAPISI olarak
-   yalnızca ``action_mask.worker_action_mask`` üzerinden (yani SADECE worker
-   adaylarına) uygulanır — TASARIM.md §12.3.3.5'in "manager fizibilite
-   kontrolü yapmaz" kararıyla tutarlı olsun diye, bir grubun DOĞRUDAN
-   (geçişsiz) yerleştirilmesi bu kapıdan asla bloklanmaz. Bu, projenin
-   zaten belgelenmiş bir mimari sadeleştirmesinin doğal bir uzantısıdır.
+   üzerinden). ``width_step_is_feasible`` FEZİBİLİTE KAPISI hem
+   ``action_mask.worker_action_mask`` (worker adayları) HEM DE
+   ``transition_rules.is_transition_required`` (bir grubun DOĞRUDAN/
+   geçişsiz yerleştirilip yerleştirilemeyeceği kararı) üzerinden uygulanır.
+   ÖNCEDEN yalnızca worker tarafında uygulanıyordu — TASARIM.md §12.3.3.5'in
+   "manager fizibilite kontrolü yapmaz" kararına dayanarak DOĞRUDAN
+   yerleştirme bu kapıdan hiç geçmiyordu. Bu, Δw/Δt/Δh/Δθ toleransı
+   içindeki (worker gerektirmeyen) küçük sıçramaların eş. 25'in "Kz sonrası
+   genişlik artamaz" kuralını sessizce atlamasına yol açıyordu — canlı
+   veride çok sayıda kursun net yönünü (ilk→son slot) makalenin öngördüğü
+   azalan yerine artan yapacak kadar sistemik bir etkiydi. Bu yüzden
+   ``is_transition_required`` genişletildi: artık boyutsal tolerans İÇİNDE
+   olsa bile yön kuralını ihlal eden bir hedef "transition gerekli" sayılır
+   (worker'a devredilir; worker da bunu asla köprüleyemeyeceği için grup bu
+   kurs için elenir) — DOĞRUDAN yerleştirme artık bu kapıdan bloklanabilir.
 
 7. **Semi-MDP ödül ilişkilendirmesi (manager'ın seyrek/terminal ödülü).**
    R^m (eş. 34) epizot başına TEK bir skalerdir, ama manager epizot boyunca
@@ -101,8 +110,9 @@ class DecisionKind(Enum):
 
 @dataclass(frozen=True, slots=True)
 class RewardWeights:
-    """eş. 34 (ω1, ω2) + eş. 35 (r_s, β0, β1, β2). Sayısal değerler makalede
-    verilmiyor (bkz. modül-üstü yorum / TASARIM.md §12.2.2) —
+    """eş. 34 (ω1, ω2) + eş. 35 (r_s, β0, β1, β2) + TASARIM.md §14.3.J
+    (m_target, ω3 — yumuşak kurs-kapasitesi hedefi). Sayısal değerler
+    makalede verilmiyor (bkz. modül-üstü yorum / TASARIM.md §12.2.2) —
     ``training/configs/default.yaml``'dan gelir.
     """
 
@@ -112,6 +122,8 @@ class RewardWeights:
     beta0: float
     beta1: float
     beta2: float
+    m_target: float
+    omega3: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -352,6 +364,8 @@ class HotRollingEnv:
                 m_min=self._constraints.m_min,
                 omega1=self._weights.omega1,
                 omega2=self._weights.omega2,
+                m_target=self._weights.m_target,
+                omega3=self._weights.omega3,
             )
             self._course_index += 1
             if self._course_index >= self._courses_per_episode:
@@ -398,7 +412,11 @@ class HotRollingEnv:
         self._manager_attempts_this_course += 1
 
         transition_needed = self._progress.last_attributes is not None and transition_rules.is_transition_required(
-            self._progress.last_attributes, selected.first, self._constraints
+            self._progress.last_attributes,
+            selected.first,
+            self._constraints,
+            cumulative_length_mm=self._progress.cumulative_length_mm,
+            reverse_events_in_zone=self._progress.reverse_width_events_count,
         )
 
         if not transition_needed:
@@ -479,7 +497,11 @@ class HotRollingEnv:
         self._worker_attempts_this_subtask += 1
 
         reached = not transition_rules.is_transition_required(
-            self._progress.last_attributes, target.first, self._constraints
+            self._progress.last_attributes,
+            target.first,
+            self._constraints,
+            cumulative_length_mm=self._progress.cumulative_length_mm,
+            reverse_events_in_zone=self._progress.reverse_width_events_count,
         )
 
         if reached:

@@ -67,12 +67,68 @@ class TestTransitionRequired:
     def test_not_required_when_within_tolerance(self, constraints):
         prev = OrderAttributes(1000.0, 2.0, 50.0, 850.0)
         target = OrderAttributes(1010.0, 2.1, 51.0, 855.0)
-        assert is_transition_required(prev, target, constraints) is False
+        assert (
+            is_transition_required(
+                prev, target, constraints, cumulative_length_mm=0.0, reverse_events_in_zone=0
+            )
+            is False
+        )
 
     def test_required_when_outside_tolerance(self, constraints):
         prev = OrderAttributes(1000.0, 2.0, 50.0, 850.0)
         target = OrderAttributes(1500.0, 2.0, 50.0, 850.0)
-        assert is_transition_required(prev, target, constraints) is True
+        assert (
+            is_transition_required(
+                prev, target, constraints, cumulative_length_mm=0.0, reverse_events_in_zone=0
+            )
+            is True
+        )
+
+    def test_required_when_small_increase_violates_post_kz_rule(self, constraints):
+        # eş. 25 regresyonu: Δw toleransı içinde kalan (worker'sız/DOĞRUDAN
+        # yerleştirilebilecek) bir artış bile Kz sonrası yasaktır.
+        prev = OrderAttributes(1000.0, 2.0, 50.0, 850.0)
+        target = OrderAttributes(1010.0, 2.0, 50.0, 850.0)  # +10mm, delta_w=50 icinde
+        assert (
+            is_transition_required(
+                prev,
+                target,
+                constraints,
+                cumulative_length_mm=constraints.kz + 100,
+                reverse_events_in_zone=0,
+            )
+            is True
+        )
+
+    def test_not_required_when_decrease_within_tolerance_post_kz(self, constraints):
+        prev = OrderAttributes(1000.0, 2.0, 50.0, 850.0)
+        target = OrderAttributes(990.0, 2.0, 50.0, 850.0)  # azalış, her zaman serbest
+        assert (
+            is_transition_required(
+                prev,
+                target,
+                constraints,
+                cumulative_length_mm=constraints.kz + 100,
+                reverse_events_in_zone=0,
+            )
+            is False
+        )
+
+    def test_required_when_reverse_budget_exhausted_pre_kz(self, constraints):
+        # Kz bolgesi icinde (b_jk=1) ama Lr butcesi tukenmis bir azalis da
+        # "transition gerekli" sayilmali (dogrudan yerlestirme bloklanmali).
+        prev = OrderAttributes(1000.0, 2.0, 50.0, 850.0)
+        target = OrderAttributes(970.0, 2.0, 50.0, 850.0)
+        assert (
+            is_transition_required(
+                prev,
+                target,
+                constraints,
+                cumulative_length_mm=10000.0,
+                reverse_events_in_zone=constraints.lr,
+            )
+            is True
+        )
 
 
 class TestReverseWidthStep:
