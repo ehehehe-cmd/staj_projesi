@@ -55,11 +55,26 @@ def clear_pending_pool(session: Session) -> tuple[int, int]:
     TASARIM.md §12.2.3.3) nedeniyle sıra kritiktir:
       1) önce ``slab_orders → main_product_groups`` kenarı kırılır
          (``main_group_id = NULL``),
-      2) artık kimse tarafından referans edilmeyen gruplar silinir,
-      3) en son pending order'ların kendisi silinir (artık hiçbir grup
+      2) ``manager_decisions.selected_group_id`` kenarı da kırılır — bir
+         grup SEÇİLİP (karar kaydedilip) hiç YERLEŞTİRİLMEMİŞ olabilir
+         (ör. worker'a devredilip köprü adayı bulunamadığı için elenmiş);
+         bu durumda grubun ``status``'ü hâlâ ``available``'dır ama
+         ``manager_decisions`` ona referans verir — bu kırılmazsa silme
+         FK ihlaliyle patlar (canlı bir simülasyonun ARDINDAN çağrılırken
+         test sırasında bulundu, 2026-08-17, bkz. TASARIM.md §9.4). Karar
+         GEÇMİŞİ silinmez, yalnızca artık var olmayacak gruba işaret eden
+         referans NULL'lanır (``selected_group_id`` zaten nullable — "kursu
+         kapat" kararları da bunu None tutar).
+      3) artık kimse tarafından referans edilmeyen gruplar silinir,
+      4) en son pending order'ların kendisi silinir (artık hiçbir grup
          onlara ``first_order_id``/``last_order_id`` ile referans etmiyor).
     """
     session.execute(update(SlabOrder).where(SlabOrder.status == "pending").values(main_group_id=None))
+    session.execute(
+        update(ManagerDecision)
+        .where(ManagerDecision.selected_group_id.in_(select(MainProductGroup.id).where(MainProductGroup.status == "available")))
+        .values(selected_group_id=None)
+    )
     deleted_groups = session.execute(
         delete(MainProductGroup).where(MainProductGroup.status == "available")
     ).rowcount
@@ -293,6 +308,27 @@ def sum_available_group_sizes(session: Session) -> int:
     return session.execute(
         select(func.coalesce(func.sum(MainProductGroup.group_size), 0)).where(MainProductGroup.group_size > 0)
     ).scalar_one()
+
+
+def get_pool_status(session: Session) -> dict[str, int]:
+    """Canlı havuzun ne kadarının kaldığı — dashboard'daki "havuz sağlığı"
+    göstergesi için (TASARIM.md §9 eki, 2026-08-17: ``--enable-order-stream``
+    olmadan uzun süre çalışan bir oturumun havuzu sessizce tüketebildiği
+    bulgusu üzerine eklendi, bkz. docs/SONUCLAR.md)."""
+    remaining_groups = session.execute(
+        select(func.count()).select_from(MainProductGroup).where(MainProductGroup.group_size > 0)
+    ).scalar_one()
+    remaining_slabs = sum_available_group_sizes(session)
+    remaining_transitions = session.execute(
+        select(func.count())
+        .select_from(SlabOrder)
+        .where(SlabOrder.order_class == "transition", SlabOrder.status == "pending")
+    ).scalar_one()
+    return {
+        "remaining_main_groups": remaining_groups,
+        "remaining_main_slabs": remaining_slabs,
+        "remaining_transition_orders": remaining_transitions,
+    }
 
 
 def load_available_groups(

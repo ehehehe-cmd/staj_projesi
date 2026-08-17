@@ -2,6 +2,7 @@ import { Injectable, computed, effect, inject, signal } from '@angular/core';
 
 import { ActiveCourse, ActiveCourseSlot } from '../models/course.model';
 import { ActiveModels } from '../models/model-version.model';
+import { PoolStatus } from '../models/order.model';
 import { LiveEvent, SimulationRun } from '../models/simulation.model';
 import { ApiService } from './api.service';
 import { WsService } from './ws.service';
@@ -94,6 +95,16 @@ export class SimulationStateService {
    * dinleyebileceği en son WS olayı. */
   readonly lastEvent = this._lastEvent.asReadonly();
 
+  /** Dashboard "Havuz Durumu" göstergesi (2026-08-17 eki) — havuzun
+   * her tek karar/olayda değil, düzenli aralıklarla (bkz. `start()`)
+   * yoklanması yeterli; bu, diğer state'in aksine kasıtlı olarak
+   * event-sourced DEĞİL, çünkü tüketimi tetikleyen tek bir olay tipi yok
+   * (her manager/worker kararı azaltabilir) ve her tick'te sorgulamak
+   * gereksiz yük olurdu. */
+  private static readonly POOL_STATUS_POLL_MS = 5000;
+  private readonly _poolStatus = signal<PoolStatus | null>(null);
+  readonly poolStatus = this._poolStatus.asReadonly();
+
   private started = false;
 
   constructor() {
@@ -118,6 +129,12 @@ export class SimulationStateService {
     }
     this.started = true;
     this.ws.connect();
+    this.refreshPoolStatus();
+    setInterval(() => this.refreshPoolStatus(), SimulationStateService.POOL_STATUS_POLL_MS);
+  }
+
+  refreshPoolStatus(): void {
+    this.api.getPoolStatus().subscribe((status) => this._poolStatus.set(status));
   }
 
   refreshSnapshot(): void {

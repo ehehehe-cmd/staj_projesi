@@ -46,3 +46,34 @@ export interface GenerateOrdersResponse {
   cleared_orders: number;
   cleared_groups: number;
 }
+
+export interface PoolStatus {
+  remaining_main_groups: number;
+  remaining_main_slabs: number;
+  remaining_transition_orders: number;
+}
+
+export interface OrderStreamStartRequest {
+  target_main_slabs?: number;
+  seed?: number | null;
+}
+
+export interface OrderStreamStatus {
+  running: boolean;
+  target_main_slabs: number | null;
+}
+
+export interface ResetForDemoRequest {
+  batches?: number;
+  seed?: number | null;
+}
+
+export interface ResetForDemoResponse {
+  simulation_stopped: boolean;
+  stream_stopped: boolean;
+  cleared_orders: number;
+  cleared_groups: number;
+  inserted_orders: number;
+  inserted_groups: number;
+  pool_status: PoolStatus;
+}

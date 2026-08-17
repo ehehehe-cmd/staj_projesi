@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import courses, decisions, models, orders, simulation, ws_routes
 from app.simulation.notifier import LiveEventNotifier
+from app.simulation.order_stream import OrderStreamController
 from app.ws.manager import ConnectionManager
 
 logger = logging.getLogger(__name__)
@@ -43,11 +44,13 @@ async def _broadcast_events(notifier: LiveEventNotifier, manager: ConnectionMana
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.connection_manager = ConnectionManager()
+    app.state.order_stream = OrderStreamController()
     async with LiveEventNotifier() as notifier:
         broadcast_task = asyncio.create_task(_broadcast_events(notifier, app.state.connection_manager))
         try:
             yield
         finally:
+            await app.state.order_stream.stop()
             broadcast_task.cancel()
             try:
                 await broadcast_task

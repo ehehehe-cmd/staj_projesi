@@ -6,7 +6,17 @@ import { environment } from '../../../environments/environment';
 import { ActiveCourse, Course, CourseDetail } from '../models/course.model';
 import { DecisionsPage } from '../models/decision.model';
 import { ActiveModels, ModelVersion } from '../models/model-version.model';
-import { GenerateOrdersRequest, GenerateOrdersResponse, MainGroup, SlabOrder } from '../models/order.model';
+import {
+  GenerateOrdersRequest,
+  GenerateOrdersResponse,
+  MainGroup,
+  OrderStreamStartRequest,
+  OrderStreamStatus,
+  PoolStatus,
+  ResetForDemoRequest,
+  ResetForDemoResponse,
+  SlabOrder,
+} from '../models/order.model';
 import { SimulationRun, SimulationStartRequest } from '../models/simulation.model';
 
 /** HttpClient sarmalayıcısı — TASARIM.md §9. Backend'in (Faz 6) REST
@@ -30,6 +40,26 @@ export class ApiService {
 
   generateOrders(body: GenerateOrdersRequest): Observable<GenerateOrdersResponse> {
     return this.http.post<GenerateOrdersResponse>(`${this.base}/api/orders/generate`, body);
+  }
+
+  getPoolStatus(): Observable<PoolStatus> {
+    return this.http.get<PoolStatus>(`${this.base}/api/orders/pool-status`);
+  }
+
+  getOrderStreamStatus(): Observable<OrderStreamStatus> {
+    return this.http.get<OrderStreamStatus>(`${this.base}/api/orders/stream/status`);
+  }
+
+  startOrderStream(body: OrderStreamStartRequest): Observable<OrderStreamStatus> {
+    return this.http.post<OrderStreamStatus>(`${this.base}/api/orders/stream/start`, body);
+  }
+
+  stopOrderStream(): Observable<OrderStreamStatus> {
+    return this.http.post<OrderStreamStatus>(`${this.base}/api/orders/stream/stop`, {});
+  }
+
+  resetForDemo(body: ResetForDemoRequest = {}): Observable<ResetForDemoResponse> {
+    return this.http.post<ResetForDemoResponse>(`${this.base}/api/orders/reset-for-demo`, body);
   }
 
   // ── courses (§9 "live-course" / "course-history") ────────────────

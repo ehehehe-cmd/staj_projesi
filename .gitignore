@@ -30,5 +30,8 @@ infra/pgdata/
 .DS_Store
 *.swp
 
+# --- dev.sh çalışma zamanı (PID/log dosyaları) ---
+.run/
+
 
 docs

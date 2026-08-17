@@ -68,6 +68,37 @@ class GenerateOrdersResponse(BaseModel):
     cleared_groups: int = 0
 
 
+class PoolStatusOut(BaseModel):
+    remaining_main_groups: int
+    remaining_main_slabs: int
+    remaining_transition_orders: int
+
+
+class ResetForDemoRequest(BaseModel):
+    batches: int = Field(default=25, ge=1, le=100)
+    seed: int | None = None
+
+
+class ResetForDemoResponse(BaseModel):
+    simulation_stopped: bool
+    stream_stopped: bool
+    cleared_orders: int
+    cleared_groups: int
+    inserted_orders: int
+    inserted_groups: int
+    pool_status: PoolStatusOut
+
+
+class OrderStreamStartRequest(BaseModel):
+    target_main_slabs: int = Field(default=200, ge=1, le=100_000)
+    seed: int | None = None
+
+
+class OrderStreamStatusOut(BaseModel):
+    running: bool
+    target_main_slabs: int | None = None
+
+
 # ── courses ─────────────────────────────────────────────────────────
 
 

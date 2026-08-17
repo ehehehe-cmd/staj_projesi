@@ -77,6 +77,7 @@ from enum import Enum
 from pathlib import Path
 
 import yaml
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -509,10 +510,25 @@ class LiveEngine:
 
 
 def _execute_and_commit(engine: LiveEngine, run_id: int) -> StepOutcome:
+    """TASARIM.md §9.4'te bulunan bir çökme üzerine eklenen koruma: eş-zamanlı
+    bir DB işlemi (ör. dashboard'daki "Sunuma Hazırla" — ``clear_pending_pool``)
+    bu adımın ORTASINDA az önce görülen bir grubu/order'ı silerse (yarış
+    durumu — iki AYRI süreç aynı DB üzerinde koordinasyonsuz çalışıyor,
+    tam önlemek pahalı/karmaşık olurdu), ``IntegrityError`` (veya başka bir
+    geçici DB hatası) TÜM ``live_engine`` sürecini ÇÖKERTİRDİ (2026-08-17'de
+    canlı olarak gözlendi). Artık yalnızca BU adım atlanır, süreç ayakta
+    kalır — bir sonraki tick'te havuz muhtemelen tutarlı bir durumdadır."""
     with SessionLocal() as session:
-        outcome = engine.step_once(session)
-        session.commit()
-        return outcome
+        try:
+            outcome = engine.step_once(session)
+            session.commit()
+            return outcome
+        except SQLAlchemyError:
+            session.rollback()
+            logger.exception(
+                "adım atlandı — DB hatası (muhtemelen eş-zamanlı bir havuz sıfırlamasıyla yarış durumu), süreç ayakta kalıyor"
+            )
+            return StepOutcome(course_id=None, detail="adım atlandı (geçici DB hatası)")
 
 
 async def run_loop(*, engine: LiveEngine, run_id: int, notifier: LiveEventNotifier) -> None:

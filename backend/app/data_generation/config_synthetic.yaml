@@ -17,7 +17,7 @@
 main_steel_grades: [Q235B, Q345B, SPHC, SS400, SPCC]
 transition_steel_grades: [TR-C, TR-D]
 
-main_groups_per_course: {min: 1, max: 2}
+main_groups_per_course: {min: 2, max: 4}  # 2026-08-17: 1-2'den artırıldı (TASARIM.md §9.3) — tek parti içindeki ZİNCİRLİ (köprülenebilir) grup sayısını artırıp worker-çağrılma sıklığını yükseltmek için. group_size KASITLI OLARAK değiştirilmedi (bkz. terk edilen ilk deneme: group_size küçültmek kursu partiler-arası KÖPRÜLENEMEZ atlamalara zorluyor, başarısızlık oranını patlatıyor).
 group_size: {min: 30, max: 70}
 
 main_width_mm: {min: 800.0, max: 1500.0}  # 2026-08-15: 900-1200'den genişletildi (TASARIM.md §14.3, worker çağrılma oranı ölçümü: %57→%79, imkansız/bütçe-aşan çift oranı %0)

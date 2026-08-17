@@ -21,6 +21,13 @@ const TONE_BY_STATUS: Record<string, StatusTone> = {
   failed: 'critical',
   skipped: 'critical',
   stopped: 'neutral',
+  // order havuzu sağlığı (dashboard "Havuz Durumu" göstergesi, TASARIM.md §9 eki)
+  sağlıklı: 'good',
+  azalıyor: 'warning',
+  tükendi: 'critical',
+  // otomatik order akışı aç/kapa (dashboard "Otomatik Order Akışı", TASARIM.md §9 eki)
+  açık: 'good',
+  kapalı: 'neutral',
 };
 
 const COLOR_BY_TONE: Record<StatusTone, string> = {
