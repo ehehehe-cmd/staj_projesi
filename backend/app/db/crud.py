@@ -68,15 +68,40 @@ def clear_pending_pool(session: Session) -> tuple[int, int]:
       3) artık kimse tarafından referans edilmeyen gruplar silinir,
       4) en son pending order'ların kendisi silinir (artık hiçbir grup
          onlara ``first_order_id``/``last_order_id`` ile referans etmiyor).
+
+    ADIM 1/2/3'ün filtresi ``status='available'``'in YANINDA
+    ``'partially_used'``'ü de KAPSAMALI — bir grup kısmen tüketilmiş
+    olabilir (``consume_group_members`` bunu ``'scheduled'`` yerine
+    ``'partially_used'`` işaretler, kalan üyeleri hâlâ ``pending``'dir).
+    Yalnızca ``'available'`` filtrelenirse bu gruplar SİLİNMEZ ama
+    ``first_order_id``/``last_order_id``'leri hâlâ (adım 4'te silinecek)
+    pending order'lara işaret eder → FK ihlali (canlı bir simülasyon
+    ARDINDAN test edilirken bulundu, 2026-08-17, bkz. TASARIM.md §9.4).
+    ``'scheduled'`` (tamamen tüketilmiş) gruplar hâlâ İSTENMEDEN
+    silinmiyor — onların order'ları zaten ``pending`` değil.
+
+    **İkinci bir gerçek hata (aynı doğrulama turunda bulundu):** adım 1
+    yalnızca ``status='pending'`` order'ların ``main_group_id``'sini
+    NULL'lıyordu — ama silinecek bir ``partially_used`` grubun ZATEN
+    TÜKETİLMİŞ (``status != 'pending'``, kursa yerleşmiş) üyeleri de
+    HÂLÂ o gruba ``main_group_id`` ile işaret ediyor; grup silinirken bu
+    ``fk_slab_orders_main_group_id`` FK'sini ihlal ediyordu (dairesel
+    FK'nin İKİNCİ yönü — ilk hatanın simetriği). Düzeltme: adım 1 artık
+    ``status='pending'`` DEĞİL, "silinecek bir gruba ait olan" (pending
+    olsun olmasın) TÜM order'ları hedefliyor — zaten-tüketilmiş
+    order SATIRLARI silinmiyor, yalnızca artık var olmayacak gruba olan
+    referansları NULL'lanıyor (geçmiş kurs verisi `course_slots`'ta ayrıca
+    ve tam olarak duruyor, bu referansa bağımlı değil).
     """
-    session.execute(update(SlabOrder).where(SlabOrder.status == "pending").values(main_group_id=None))
+    groups_to_delete = select(MainProductGroup.id).where(MainProductGroup.status != "scheduled")
+    session.execute(update(SlabOrder).where(SlabOrder.main_group_id.in_(groups_to_delete)).values(main_group_id=None))
     session.execute(
         update(ManagerDecision)
-        .where(ManagerDecision.selected_group_id.in_(select(MainProductGroup.id).where(MainProductGroup.status == "available")))
+        .where(ManagerDecision.selected_group_id.in_(groups_to_delete))
         .values(selected_group_id=None)
     )
     deleted_groups = session.execute(
-        delete(MainProductGroup).where(MainProductGroup.status == "available")
+        delete(MainProductGroup).where(MainProductGroup.status != "scheduled")
     ).rowcount
     deleted_orders = session.execute(delete(SlabOrder).where(SlabOrder.status == "pending")).rowcount
     return deleted_orders, deleted_groups

@@ -41,14 +41,14 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge/statu
     <mat-card class="reset-card" appearance="outlined">
       <div class="reset-row">
         <div class="reset-text">
-          <strong>Sunuma Hazırla</strong>
+          <strong>Sistemi Sıfırla</strong>
           <span class="meta">
             Simülasyonu ve otomatik order akışını durdurur, bekleyen havuzu temizleyip taze/orantılı bir havuzla
             ({{ RESET_BATCHES }} parti, ~{{ RESET_BATCHES * 130 }} order) yeniden doldurur.
           </span>
         </div>
         <button mat-raised-button color="primary" [disabled]="resetBusy()" (click)="resetForDemo()">
-          <mat-icon>restart_alt</mat-icon> Sunuma Hazırla
+          <mat-icon>restart_alt</mat-icon> Sistemi Sıfırla
         </button>
       </div>
       @if (lastReset(); as r) {
